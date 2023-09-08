@@ -1,3 +1,3 @@
-import config from "./prod.js";
+import config from "./dev.js";
 
 export default config;
