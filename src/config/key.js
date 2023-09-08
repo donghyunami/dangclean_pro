@@ -1,5 +1,3 @@
-import prodConfig from "./prod.js";
-import devConfig from "./dev.js";
+import config from "./prod.js";
 
-export default process.env.NODE_ENV === "production" ? prodConfig : devConfig;
-console.log("=======================\n mode:>", process.env.NODE_ENV);
+export default config;
