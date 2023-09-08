@@ -25,7 +25,15 @@ const app = express();
 app.set("port", PORT || 5000);
 
 dbconnect();
-app.use(morgan("div"));
+
+// Middlewares
+if (process.env.NODE_ENV === "production") {
+  // 배포 모드
+  app.use(morgan("combined"));
+} else {
+  // 개발 모드
+  app.use(morgan("dev"));
+}
 app.use(
   cors({
     origin: CLIENT_URL || "http://localhost:3000",
@@ -37,6 +45,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser(COOKIE_SECRET));
 
+// Routes
 app.use("/api/v1/users", usersRouter);
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/diabetes", diabetesRouter);
