@@ -2,10 +2,6 @@
 /build
 /uploads
 
-dev.js
-.env
-
-
 .DS_Store
 
 npm-debug.log*
