@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import config from "./config/key.js";
 
+console.log({ config });
 const { MONGO_URI } = config;
 
 const dbconnect = () => {

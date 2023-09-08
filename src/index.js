@@ -20,9 +20,9 @@ import {
 
 dotenv.config();
 
-const { PORT, COOKIE_SECRET, CLIENT_URL } = config;
+const { COOKIE_SECRET, CLIENT_URL } = config;
 const app = express();
-app.set("port", PORT || 5000);
+app.set("port", 5000);
 
 dbconnect();
 
