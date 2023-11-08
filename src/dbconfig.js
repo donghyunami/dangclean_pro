@@ -1,9 +1,7 @@
 import mongoose from "mongoose";
 import config from "./config/key.js";
 
-console.log({ config });
 const { MONGO_URI } = config;
-
 const dbconnect = () => {
   if (process.env.NODE_ENV !== "production") {
     mongoose.set("debug", true);

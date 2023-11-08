@@ -2,12 +2,14 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import dotenv from "dotenv";
-import dbconnect from "./dbconfig";
 import morgan from "morgan";
 import helmet from "helmet";
+import dbconnect from "./dbconfig.js";
+import config from "./config/key.js";
+dotenv.config();
+const { NODE_ENV, COOKIE_SECRET, CLIENT_URL } = config;
 
-import { NODE_ENV, CLIENT_URL, COOKIE_SECRET } from "./config/key.js";
-
+console.log({ config });
 import {
   usersRouter,
   authRouter,
@@ -16,8 +18,6 @@ import {
   diabetesRouter,
   likeRouter
 } from "./routes/index.js";
-
-dotenv.config();
 
 const app = express();
 app.set("port", 5000);

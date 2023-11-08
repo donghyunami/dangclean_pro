@@ -1,7 +1,6 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import config from "../config/key.js";
-
+import config from "../config/key";
 const { JWT_SECRET, JWT_ALGORITHN, JWT_SHORT_EXPIRESIN, JWT_LONG_EXPIRESIN } =
   config;
 
