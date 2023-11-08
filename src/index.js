@@ -2,12 +2,11 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import dotenv from "dotenv";
-
+import dbconnect from "./dbconfig";
 import morgan from "morgan";
 import helmet from "helmet";
 
-import config from "./config/key.js";
-import dbconnect from "./dbconfig.js";
+import { NODE_ENV, CLIENT_URL, COOKIE_SECRET } from "./config/key.js";
 
 import {
   usersRouter,
@@ -20,14 +19,13 @@ import {
 
 dotenv.config();
 
-const { COOKIE_SECRET, CLIENT_URL } = config;
 const app = express();
 app.set("port", 5000);
 
 dbconnect();
 
 // Middlewares
-if (process.env.NODE_ENV === "production") {
+if (NODE_ENV === "production") {
   // 배포 모드
   app.use(morgan("combined"));
 } else {
