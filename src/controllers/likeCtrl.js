@@ -1,4 +1,4 @@
-import { Like } from "../models/like.js";
+import Like from "../models/like.js";
 /**
  * @description Contents 및 Comment 정보를 담는 객체를 만들어주는 함수
  * @param request
