@@ -1,7 +1,8 @@
 import Contents from "../models/contents.js";
-import { Like } from "../models/like.js";
+import Like from "../models/like.js";
 import User from "../models/user.js";
 import qs from "qs";
+import { getPaging } from "../utils/getPaging.js";
 
 export const contentsCtrl = {
   postContents: async (req, res) => {
@@ -20,7 +21,7 @@ export const contentsCtrl = {
       console.log(contents);
       if (!contents._id) {
         return res
-          .status(403)
+          .status(404)
           .json({ isOk: false, msg: "해당 게시글이 존재하지 않습니다." });
       }
       await contents.updateOne({
@@ -39,7 +40,7 @@ export const contentsCtrl = {
       const contents = await Contents.findById(req.params.id);
       if (!contents._id) {
         return res
-          .status(403)
+          .status(404)
           .json({ isOk: false, msg: "해당 게시글이 존재하지 않습니다." });
       }
       await contents.updateOne({
@@ -55,26 +56,22 @@ export const contentsCtrl = {
   },
   // /contents?page=1&size=10
   getAllContents: async (req, res) => {
-    const { page, size } = qs.parse(req.query);
-
     try {
-      const currentPage = parseInt(page || 1); // 현재 페이지, default: 1
-      const listSize = parseInt(size || 10); //한 페이지당 보여줄 게시글 수, default: 1
-      const totalContents = await Contents.countDocuments({}); //총 컨텐츠 갯수
-      if (!totalContents)
-        return res
-          .status(400)
-          .json({ isOk: false, msg: "불러올 컨텐츠가 없습니다." });
+      const [currentPage, listSize, totalContents] = await getPaging(
+        qs.parse(req.query)
+      );
 
       const contents = await Contents.find()
         .sort({ createdAt: -1 }) //데이터 최신순으로 정렬
         .skip(listSize * (currentPage - 1))
         .limit(listSize)
         .populate("writer", "nickname imageSrc");
-      if (!contents.length) {
-        return res
-          .status(403)
-          .json({ isOk: false, msg: "해당 게시글이 존재하지 않습니다." });
+      if (!totalContents) {
+        return res.status(404).json({
+          isOk: false,
+          contents: [],
+          msg: "해당 게시글이 존재하지 않습니다."
+        });
       }
       res.status(200).json({ isOk: true, contents });
     } catch (err) {
@@ -89,10 +86,12 @@ export const contentsCtrl = {
         "writer",
         "nickname imageSrc"
       );
-      if (contents._id) {
-        return res
-          .status(403)
-          .json({ isOk: false, msg: "해당 게시글이 존재하지 않습니다." });
+      if (!contents._id) {
+        return res.status(404).json({
+          isOk: false,
+          contents: [],
+          msg: "해당 게시글이 존재하지 않습니다."
+        });
       }
       res.status(200).json({ isOk: true, contentsInfo: contents });
     } catch (err) {
@@ -105,18 +104,57 @@ export const contentsCtrl = {
     try {
       const { nickname } = req.params;
       const { _id } = await User.findOne({ nickname });
+      const [currentPage, listSize, totalContents] = await getPaging(
+        qs.parse(req.query),
+        {
+          writer: _id
+        }
+      );
+
       const contents = await Contents.find()
         .where("writer")
         .equals(_id)
         .sort({ createdAt: -1 })
+        .skip(listSize * (currentPage - 1))
+        .limit(listSize)
         .populate("writer", "email nickname imageSrc aboutMe");
-      console.log(contents);
-      //        .populate("writer", "nickname imageSrc");
-      if (!contents.length) {
-        return res
-          .status(403)
-          .json({ isOk: false, msg: "해당 게시글이 존재하지 않습니다." });
+
+      if (!totalContents) {
+        return res.status(404).json({
+          isOk: false,
+          contents: [],
+          msg: "해당 게시글이 존재하지 않습니다."
+        });
       }
+      res.status(200).json({ isOk: true, contents });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json(err);
+    }
+  },
+
+  //내게시글(게시글수 포함) 정보
+  getMyFeedInfo: async (req, res) => {
+    try {
+      const { nickname } = req.params;
+      const users = await User.findOne({ nickname });
+      const contentsCount = await Contents.countDocuments({
+        writer: users._id
+      });
+      if (!contentsCount) {
+        return res.status(404).json({
+          isOk: false,
+          msg: "해당 게시글이 존재하지 않습니다.",
+          contents: []
+        });
+      }
+
+      const { password, ...writer } = users._doc;
+      const contents = {
+        writer,
+        contentsCount
+      };
+
       res.status(200).json({ isOk: true, contents });
     } catch (err) {
       console.error(err);
@@ -125,30 +163,38 @@ export const contentsCtrl = {
   },
   //내 관심글 가져오기
   getLikedMyContents: async (req, res) => {
-    console.log("내 관심글 가져오기");
     try {
       const { nickname } = req.params;
       const { _id } = await User.findOne({ nickname });
-      const like = await Like.find()
+      const [currentPage, listSize, totalContents] = await getPaging(
+        qs.parse(req.query),
+        {
+          writer: _id,
+          contentsType: "contents"
+        },
+        Like
+      );
+      const likedPost = await Like.find()
         .where("writer")
         .equals(_id)
         .where({ contentsType: "contents" })
         .sort({ createdAt: -1 })
         .select("_id contents")
+        .skip(listSize * (currentPage - 1))
+        .limit(listSize)
         .populate({
           path: "contents",
           populate: { path: "writer", select: "_id email nickname imageSrc" }
         });
-
-      if (!like) {
-        return res.status(403).json({
+      if (!totalContents) {
+        return res.status(404).json({
           isOk: false,
-          msg: "해당 게시글의 좋아요 정보가 존재하지 않습니다."
+          likedPost: [],
+          msg: "불러올 관심 컨텐츠가 없습니다."
         });
       }
-      res.status(200).json({ isOk: true, like });
+      res.status(200).json({ isOk: true, likedPost });
     } catch (err) {
-      console.error(err);
       res.status(500).json({ isOk: false, err });
     }
   }
